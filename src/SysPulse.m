@@ -429,6 +429,8 @@ static float smc_read_key(const char *key_str) {
 
     // Processor Specs Box
     NSTextField *_procPowerLabel;
+    NSTextField *_procCorePowerLabel;
+    NSTextField *_procGtPowerLabel;
     NSTextField *_procVoltageLabel;
     NSTextField *_procFrequencyLabel;
     NSTextField *_procTdpLabel;
@@ -625,28 +627,40 @@ static float smc_read_key(const char *key_str) {
     procName.frame = NSMakeRect(12, 34, procCard.bounds.size.width - 24, 16);
     [procCard addSubview:procName];
 
-    _procPowerLabel = [NSTextField labelWithString:@"Power: -- W (Package)"];
+    _procPowerLabel = [NSTextField labelWithString:@"Pkg: -- W"];
     _procPowerLabel.font = [NSFont monospacedDigitSystemFontOfSize:11.0 weight:NSFontWeightBold];
     _procPowerLabel.textColor = [NSColor colorWithCalibratedRed:0.95 green:0.75 blue:0.20 alpha:1.0];
-    _procPowerLabel.frame = NSMakeRect(12, 10, 200, 16);
+    _procPowerLabel.frame = NSMakeRect(12, 10, 115, 16);
     [procCard addSubview:_procPowerLabel];
+
+    _procCorePowerLabel = [NSTextField labelWithString:@"Core Pwr: -- W"];
+    _procCorePowerLabel.font = [NSFont monospacedDigitSystemFontOfSize:11.0 weight:NSFontWeightBold];
+    _procCorePowerLabel.textColor = [NSColor colorWithCalibratedRed:0.98 green:0.55 blue:0.25 alpha:1.0];
+    _procCorePowerLabel.frame = NSMakeRect(130, 10, 135, 16);
+    [procCard addSubview:_procCorePowerLabel];
+
+    _procGtPowerLabel = [NSTextField labelWithString:@"GT Pwr: -- W"];
+    _procGtPowerLabel.font = [NSFont monospacedDigitSystemFontOfSize:11.0 weight:NSFontWeightBold];
+    _procGtPowerLabel.textColor = [NSColor colorWithCalibratedRed:0.75 green:0.45 blue:1.0 alpha:1.0];
+    _procGtPowerLabel.frame = NSMakeRect(270, 10, 125, 16);
+    [procCard addSubview:_procGtPowerLabel];
 
     _procVoltageLabel = [NSTextField labelWithString:@"VID: -- V"];
     _procVoltageLabel.font = [NSFont monospacedDigitSystemFontOfSize:11.0 weight:NSFontWeightBold];
     _procVoltageLabel.textColor = [NSColor colorWithCalibratedRed:0.35 green:0.85 blue:1.0 alpha:1.0];
-    _procVoltageLabel.frame = NSMakeRect(220, 10, 140, 16);
+    _procVoltageLabel.frame = NSMakeRect(400, 10, 110, 16);
     [procCard addSubview:_procVoltageLabel];
 
-    _procFrequencyLabel = [NSTextField labelWithString:@"Clock: 1.70 GHz (3.60 GHz Boost)"];
+    _procFrequencyLabel = [NSTextField labelWithString:@"Clock: 1.70 - 3.60 GHz"];
     _procFrequencyLabel.font = [NSFont monospacedDigitSystemFontOfSize:11.0 weight:NSFontWeightRegular];
     _procFrequencyLabel.textColor = [NSColor colorWithCalibratedWhite:0.75 alpha:1.0];
-    _procFrequencyLabel.frame = NSMakeRect(370, 10, 240, 16);
+    _procFrequencyLabel.frame = NSMakeRect(515, 10, 180, 16);
     [procCard addSubview:_procFrequencyLabel];
 
-    _procTdpLabel = [NSTextField labelWithString:@"TDP Rating: 15.0 Watts"];
+    _procTdpLabel = [NSTextField labelWithString:@"TDP: 15.0 W"];
     _procTdpLabel.font = [NSFont systemFontOfSize:11.0 weight:NSFontWeightRegular];
     _procTdpLabel.textColor = [NSColor colorWithCalibratedWhite:0.6 alpha:1.0];
-    _procTdpLabel.frame = NSMakeRect(procCard.bounds.size.width - 170, 10, 160, 16);
+    _procTdpLabel.frame = NSMakeRect(procCard.bounds.size.width - 110, 10, 100, 16);
     [procCard addSubview:_procTdpLabel];
 
     // ---------------- Section 2: 4 Top Metric Cards ----------------
@@ -706,9 +720,9 @@ static float smc_read_key(const char *key_str) {
     _gpuBar = [[ModernBarView alloc] initWithFrame:NSMakeRect(12, 24, cardW - 24, 6)];
     _gpuBar.fillColor = [NSColor colorWithCalibratedRed:0.66 green:0.33 blue:0.97 alpha:1.0];
     [c3 addSubview:_gpuBar];
-    _gpuSubLabel = [NSTextField labelWithString:@"VRAM: -- MB / 1536 MB"];
-    _gpuSubLabel.font = [NSFont systemFontOfSize:9.0 weight:NSFontWeightRegular];
-    _gpuSubLabel.textColor = [NSColor colorWithCalibratedWhite:0.6 alpha:1.0];
+    _gpuSubLabel = [NSTextField labelWithString:@"Clock: -- MHz • GT: -- W"];
+    _gpuSubLabel.font = [NSFont monospacedDigitSystemFontOfSize:9.0 weight:NSFontWeightMedium];
+    _gpuSubLabel.textColor = [NSColor colorWithCalibratedWhite:0.75 alpha:1.0];
     _gpuSubLabel.frame = NSMakeRect(12, 6, cardW - 24, 14);
     [c3 addSubview:_gpuSubLabel];
 
@@ -988,19 +1002,25 @@ static float smc_read_key(const char *key_str) {
     }
     [_pkgRow updateWithCur:cpuTemp min:_minPkgTemp max:_maxPkgTemp loadPct:overallCpu];
 
-    // 3. Electrical & Power Readings (Watts & Volts)
+
+
+    // 3. Electrical & Power Readings (Package, Core, GT Watts & VID Volts)
     float pkgPower = smc_read_key("PCPC");
     if (pkgPower <= 0) pkgPower = smc_read_key("PCPR");
+    float corePower = smc_read_key("PC0C");
+    if (corePower <= 0) corePower = smc_read_key("PC0R");
+    float gtPower = smc_read_key("PCPG");
+    if (gtPower < 0) gtPower = smc_read_key("PG0R");
     float vid = smc_read_key("VC0C");
-    if (pkgPower > 0) {
-        _procPowerLabel.stringValue = [NSString stringWithFormat:@"Power: %.2f W (Package)", pkgPower];
-    }
-    if (vid > 0) {
-        _procVoltageLabel.stringValue = [NSString stringWithFormat:@"VID: %.3f V", vid];
-    }
 
-    // 4. GPU (IOKit IntelAccelerator)
+    if (pkgPower > 0) _procPowerLabel.stringValue = [NSString stringWithFormat:@"Pkg: %.2f W", pkgPower];
+    if (corePower > 0) _procCorePowerLabel.stringValue = [NSString stringWithFormat:@"Core Pwr: %.2f W", corePower];
+    if (gtPower >= 0) _procGtPowerLabel.stringValue = [NSString stringWithFormat:@"GT Pwr: %.2f W", gtPower];
+    if (vid > 0) _procVoltageLabel.stringValue = [NSString stringWithFormat:@"VID: %.3f V", vid];
+
+    // 4. GPU (IOKit IntelAccelerator + Clock & GT Power)
     int gpuUtil = 0;
+    int gpuUtilPState = 0;
     long long vramUsed = 0;
     io_service_t gpuService = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IntelAccelerator"));
     if (gpuService) {
@@ -1009,17 +1029,29 @@ static float smc_read_key(const char *key_str) {
             CFDictionaryRef perf = (CFDictionaryRef)CFDictionaryGetValue(props, CFSTR("PerformanceStatistics"));
             if (perf) {
                 CFNumberRef u = (CFNumberRef)CFDictionaryGetValue(perf, CFSTR("Device Utilization %"));
+                CFNumberRef up = (CFNumberRef)CFDictionaryGetValue(perf, CFSTR("Device Utilization % at cur p-state"));
                 CFNumberRef v = (CFNumberRef)CFDictionaryGetValue(perf, CFSTR("gartUsedBytes"));
                 if (u) CFNumberGetValue(u, kCFNumberIntType, &gpuUtil);
+                if (up) CFNumberGetValue(up, kCFNumberIntType, &gpuUtilPState);
                 if (v) CFNumberGetValue(v, kCFNumberLongLongType, &vramUsed);
             }
             CFRelease(props);
         }
         IOObjectRelease(gpuService);
     }
+    
+    // Calculate dynamic GPU frequency in MHz
+    int gpuFreq = 300;
+    if (gpuUtil > 0 && gpuUtilPState > 0) {
+        float ratio = fminf(1.0f, fmaxf(0.26f, (float)gpuUtil / (float)gpuUtilPState));
+        gpuFreq = (int)(ratio * 1150.0f);
+    } else if (gpuUtil > 0) {
+        gpuFreq = 300 + (int)((float)gpuUtil / 100.0f * 850.0f);
+    }
+
     _gpuValLabel.stringValue = [NSString stringWithFormat:@"%d%%", gpuUtil];
     [_gpuBar setProgress:gpuUtil / 100.0];
-    _gpuSubLabel.stringValue = [NSString stringWithFormat:@"VRAM: %.0f MB / 1536 MB", vramUsed / (1024.0 * 1024.0)];
+    _gpuSubLabel.stringValue = [NSString stringWithFormat:@"%d MHz • GT: %.2f W", gpuFreq, gtPower >= 0 ? gtPower : 0.0f];
 
     // 5. RAM
     vm_size_t pageSize;
@@ -1121,37 +1153,130 @@ static float smc_read_key(const char *key_str) {
 
 - (void)openFeedback:(id)sender {
     NSAlert *alert = [[NSAlert alloc] init];
-    alert.messageText = @"SysPulse Feedback & Issue Report";
-    alert.informativeText = @"How would you like to provide feedback or report an issue?";
-    [alert addButtonWithTitle:@"Open GitHub Issues"];
-    [alert addButtonWithTitle:@"Copy Diagnostics Report"];
+    alert.messageText = @"SysPulse Feedback & GitHub Issue Reporter";
+    alert.informativeText = @"Choose how to submit your feedback or diagnostic report:";
+    [alert addButtonWithTitle:@"Send Report Automatically to GitHub"];
+    [alert addButtonWithTitle:@"Copy Diagnostics to Clipboard"];
     [alert addButtonWithTitle:@"Cancel"];
+
+    NSTextField *inputField = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 0, 320, 24)];
+    inputField.placeholderString = @"Optional: Brief note or issue description...";
+    alert.accessoryView = inputField;
 
     NSModalResponse resp = [alert runModal];
     if (resp == NSAlertFirstButtonReturn) {
-        [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://github.com/sanketrohilla/SysPulse/issues/new"]];
+        NSString *userNote = inputField.stringValue;
+        if (userNote.length == 0) userNote = @"Automated Hardware Diagnostics Report";
+        
+        NSDateFormatter *df = [[NSDateFormatter alloc] init];
+        [df setDateFormat:@"yyyy-MM-dd HH:mm:ss"];
+        NSString *ts = [df stringFromDate:[NSDate date]];
+
+        NSString *reportTitle = [NSString stringWithFormat:@"[Diagnostics] %@ - %@", userNote, ts];
+        NSString *reportContent = [NSString stringWithFormat:
+            @"## 📊 SysPulse Hardware Diagnostic Report\n"
+            @"**Note / Description:** %@\n"
+            @"**Timestamp:** %@\n\n"
+            @"### 💻 System Specifications\n"
+            @"- **OS:** macOS %@\n"
+            @"- **Processor:** Intel Core i5-8350U (4 Cores / 8 Threads)\n"
+            @"- **Base / Boost Frequency:** 1.70 GHz / 3.60 GHz\n\n"
+            @"### ⚡ Power & Voltage (Real-Time)\n"
+            @"- **Package Power:** %@\n"
+            @"- **Core Power:** %@\n"
+            @"- **GT Power:** %@\n"
+            @"- **Core Voltage:** %@\n\n"
+            @"### 🌡️ Thermal Metrics (Tj. Max: 100°C)\n"
+            @"- **Package Temp:** %@ (Min: %.1f°C, Max: %.1f°C)\n"
+            @"- **Core #0:** %@\n"
+            @"- **Core #1:** %@\n"
+            @"- **Core #2:** %@\n"
+            @"- **Core #3:** %@\n\n"
+            @"### 🎮 GPU & Memory\n"
+            @"- **GPU Utilization:** %@\n"
+            @"- **GPU Details:** %@\n"
+            @"- **RAM Usage:** %@\n"
+            @"- **Disk:** %@\n",
+            userNote, ts,
+            [[NSProcessInfo processInfo] operatingSystemVersionString],
+            _procPowerLabel.stringValue,
+            _procCorePowerLabel.stringValue,
+            _procGtPowerLabel.stringValue,
+            _procVoltageLabel.stringValue,
+            _tempValLabel.stringValue, _minPkgTemp, _maxPkgTemp,
+            _coreRows[0].tempCurLabel.stringValue,
+            _coreRows[1].tempCurLabel.stringValue,
+            _coreRows[2].tempCurLabel.stringValue,
+            _coreRows[3].tempCurLabel.stringValue,
+            _gpuValLabel.stringValue,
+            _gpuSubLabel.stringValue,
+            _ramSubLabel.stringValue,
+            _diskLabel.stringValue
+        ];
+
+        // Execute gh issue create automatically
+        NSTask *task = [[NSTask alloc] init];
+        [task setLaunchPath:@"/bin/zsh"];
+        NSString *cmd = [NSString stringWithFormat:
+            @"export PATH=\"$HOME/.local/bin:/usr/local/bin:$PATH\"; "
+            @"gh issue create --repo SanketRohilla/SysPulse --title '%@' --body '%@'",
+            reportTitle, reportContent];
+        [task setArguments:@[@"-c", cmd]];
+
+        NSPipe *pipe = [NSPipe pipe];
+        [task setStandardOutput:pipe];
+        [task setStandardError:pipe];
+
+        [task launch];
+        [task waitUntilExit];
+
+        NSData *data = [[pipe fileHandleForReading] readDataToEndOfFile];
+        NSString *outStr = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+
+        if (task.terminationStatus == 0) {
+            NSAlert *success = [[NSAlert alloc] init];
+            success.messageText = @"Report Sent Successfully!";
+            success.informativeText = [NSString stringWithFormat:@"Issue has been automatically created on your GitHub repository:\n%@", outStr];
+            [success addButtonWithTitle:@"Open on GitHub"];
+            [success addButtonWithTitle:@"OK"];
+            if ([success runModal] == NSAlertFirstButtonReturn) {
+                NSString *cleanUrl = [outStr stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+                NSArray *lines = [cleanUrl componentsSeparatedByCharactersInSet:[NSCharacterSet newlineCharacterSet]];
+                NSString *urlStr = lines.lastObject;
+                if ([urlStr hasPrefix:@"http"]) {
+                    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:urlStr]];
+                }
+            }
+        } else {
+            NSAlert *err = [[NSAlert alloc] init];
+            err.messageText = @"Failed to Send Report";
+            err.informativeText = [NSString stringWithFormat:@"Error from GitHub CLI:\n%@", outStr];
+            [err runModal];
+        }
     } else if (resp == NSAlertSecondButtonReturn) {
         NSPasteboard *pb = [NSPasteboard generalPasteboard];
         [pb clearContents];
         NSString *diag = [NSString stringWithFormat:
             @"=== SysPulse Diagnostic Report ===\n"
             @"OS: macOS %@\n"
-            @"Hardware: Intel Core i5-8350U (4 Cores / 8 Threads)\n"
-            @"Package Temp: %@\n"
-            @"Power: %@\n"
-            @"Memory: %@\n"
-            @"GPU: %@\n",
+            @"CPU: Intel Core i5-8350U (4 Cores / 8 Threads)\n"
+            @"Package Temp: %@ (Min: %.1f°C, Max: %.1f°C)\n"
+            @"Package Power: %@ | Core Power: %@ | GT Power: %@\n"
+            @"Core VID: %@\n"
+            @"GPU: %@ (%@)\n"
+            @"RAM: %@\n",
             [[NSProcessInfo processInfo] operatingSystemVersionString],
-            _tempValLabel.stringValue,
-            _procPowerLabel.stringValue,
-            _ramSubLabel.stringValue,
-            _gpuValLabel.stringValue
+            _tempValLabel.stringValue, _minPkgTemp, _maxPkgTemp,
+            _procPowerLabel.stringValue, _procCorePowerLabel.stringValue, _procGtPowerLabel.stringValue,
+            _procVoltageLabel.stringValue,
+            _gpuValLabel.stringValue, _gpuSubLabel.stringValue,
+            _ramSubLabel.stringValue
         ];
         [pb setString:diag forType:NSPasteboardTypeString];
 
         NSAlert *done = [[NSAlert alloc] init];
-        done.messageText = @"Report Copied to Clipboard";
-        done.informativeText = @"Hardware diagnostics copied! You can paste them into your bug report or email.";
+        done.messageText = @"Diagnostics Copied to Clipboard";
+        done.informativeText = @"System diagnostic information has been copied to your clipboard!";
         [done runModal];
     }
 }
