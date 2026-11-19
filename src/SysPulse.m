@@ -503,6 +503,10 @@ static float smc_read_key(const char *key_str) {
     [resetItem setTarget:self];
     [menu addItem:resetItem];
 
+    NSMenuItem *fbItem = [[NSMenuItem alloc] initWithTitle:@"Send Feedback / Report Issue..." action:@selector(openFeedback:) keyEquivalent:@"f"];
+    [fbItem setTarget:self];
+    [menu addItem:fbItem];
+
     [menu addItem:[NSMenuItem separatorItem]];
     [menu addItemWithTitle:@"Quit SysPulse" action:@selector(terminate:) keyEquivalent:@"q"];
 
@@ -590,14 +594,25 @@ static float smc_read_key(const char *key_str) {
     _vpnBadge.frame = NSMakeRect(frame.size.width - 480, frame.size.height - 45, 290, 18);
     [root addSubview:_vpnBadge];
 
+    // VPN Badge
+    _vpnBadge.frame = NSMakeRect(frame.size.width - 550, frame.size.height - 45, 240, 18);
+
     // Interval Control
     _intervalControl = [NSSegmentedControl segmentedControlWithLabels:@[@"0.5s", @"1.0s", @"2.0s"]
                                                          trackingMode:NSSegmentSwitchTrackingSelectOne
                                                                target:self
                                                                action:@selector(intervalChanged:)];
     _intervalControl.selectedSegment = 1;
-    _intervalControl.frame = NSMakeRect(frame.size.width - 165, frame.size.height - 47, 145, 24);
+    _intervalControl.frame = NSMakeRect(frame.size.width - 295, frame.size.height - 47, 135, 24);
     [root addSubview:_intervalControl];
+
+    // Feedback / Report Button
+    NSButton *feedbackBtn = [NSButton buttonWithTitle:@"Feedback / Report" target:self action:@selector(openFeedback:)];
+    feedbackBtn.bezelStyle = NSBezelStyleRounded;
+    feedbackBtn.controlSize = NSControlSizeRegular;
+    feedbackBtn.font = [NSFont systemFontOfSize:11.0 weight:NSFontWeightMedium];
+    feedbackBtn.frame = NSMakeRect(frame.size.width - 150, frame.size.height - 48, 130, 26);
+    [root addSubview:feedbackBtn];
 
     // ---------------- Section 1: Processor Info & Electrical Strip ----------------
     CGFloat procY = frame.size.height - 128;
@@ -1100,6 +1115,44 @@ static float smc_read_key(const char *key_str) {
         [_logFileHandle writeData:[row dataUsingEncoding:NSUTF8StringEncoding]];
         _logRowCount++;
         _logStatusLabel.stringValue = [NSString stringWithFormat:@"● Logged %lu records", (unsigned long)_logRowCount];
+    }
+}
+
+
+- (void)openFeedback:(id)sender {
+    NSAlert *alert = [[NSAlert alloc] init];
+    alert.messageText = @"SysPulse Feedback & Issue Report";
+    alert.informativeText = @"How would you like to provide feedback or report an issue?";
+    [alert addButtonWithTitle:@"Open GitHub Issues"];
+    [alert addButtonWithTitle:@"Copy Diagnostics Report"];
+    [alert addButtonWithTitle:@"Cancel"];
+
+    NSModalResponse resp = [alert runModal];
+    if (resp == NSAlertFirstButtonReturn) {
+        [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://github.com/sanketrohilla/SysPulse/issues/new"]];
+    } else if (resp == NSAlertSecondButtonReturn) {
+        NSPasteboard *pb = [NSPasteboard generalPasteboard];
+        [pb clearContents];
+        NSString *diag = [NSString stringWithFormat:
+            @"=== SysPulse Diagnostic Report ===\n"
+            @"OS: macOS %@\n"
+            @"Hardware: Intel Core i5-8350U (4 Cores / 8 Threads)\n"
+            @"Package Temp: %@\n"
+            @"Power: %@\n"
+            @"Memory: %@\n"
+            @"GPU: %@\n",
+            [[NSProcessInfo processInfo] operatingSystemVersionString],
+            _tempValLabel.stringValue,
+            _procPowerLabel.stringValue,
+            _ramSubLabel.stringValue,
+            _gpuValLabel.stringValue
+        ];
+        [pb setString:diag forType:NSPasteboardTypeString];
+
+        NSAlert *done = [[NSAlert alloc] init];
+        done.messageText = @"Report Copied to Clipboard";
+        done.informativeText = @"Hardware diagnostics copied! You can paste them into your bug report or email.";
+        [done runModal];
     }
 }
 
